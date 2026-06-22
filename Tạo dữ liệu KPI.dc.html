@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; background: #EEF2F7; color: #16263D; -webkit-font-smoothing: antialiased; }
+  .num { font-variant-numeric: tabular-nums; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#EEF2F7;">
+  <header style="background:linear-gradient(105deg,#004A78 0%,#005993 56%,#C2154E 142%); color:#fff;">
+    <div style="max-width:980px; margin:0 auto; padding:18px 28px; display:flex; align-items:center; gap:14px;">
+      <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#005993,#D71249); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">
+        <div style="width:17px; height:17px; border-radius:50%; background:#fff; position:relative;">
+          <div style="position:absolute; inset:4px; border-radius:50%; background:#005993;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:16px; font-weight:700; line-height:1.1;">Công cụ tạo báo cáo KPI định kỳ</div>
+        <div style="font-size:12px; color:#BBD4E8; margin-top:2px;">Tải file Excel → tự sinh dữ liệu cho Dashboard</div>
+      </div>
+    </div>
+    <div style="height:3px; background:linear-gradient(90deg,#7ED3F7 0%,#005993 42%,#D71249 100%);"></div>
+  </header>
+
+  <div style="max-width:980px; margin:0 auto; padding:28px;">
+
+    <!-- dropzone -->
+    <div onClick="{{ pick }}" onDrop="{{ onDrop }}" onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" style="{{ dropStyle }}">
+      <input id="kpiFileInput" type="file" accept=".xlsx" onChange="{{ onInput }}" style="display:none;" />
+      <div style="width:54px; height:54px; border-radius:14px; background:#E6F1F9; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+        <div style="width:24px; height:24px; border:2.5px solid #005993; border-radius:5px; position:relative;">
+          <div style="position:absolute; left:50%; top:5px; width:2.5px; height:11px; background:#005993; transform:translateX(-50%); border-radius:2px;"></div>
+          <div style="position:absolute; left:50%; top:4px; width:9px; height:9px; border-left:2.5px solid #005993; border-top:2.5px solid #005993; transform:translate(-50%,0) rotate(45deg);"></div>
+        </div>
+      </div>
+      <div style="font-size:15px; font-weight:700; color:#0A3358;">{{ dropTitle }}</div>
+      <div style="font-size:12.5px; color:#7C8CA0; margin-top:5px;">{{ dropSub }}</div>
+    </div>
+
+    <!-- error -->
+    <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:18px; background:#FBE3EA; border:1px solid #F2B6C7; border-radius:10px; padding:14px 18px; color:#A50E37; font-size:13px; font-weight:500;">{{ errorMsg }}</div>
+    </sc-if>
+
+    <!-- result -->
+    <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+    <div style="margin-top:22px;">
+      <!-- summary stats -->
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px;">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:15px 16px;">
+            <div style="font-size:11px; color:#8294A6; font-weight:600; text-transform:uppercase; letter-spacing:.4px;">{{ s.label }}</div>
+            <div class="num" style="font-size:22px; font-weight:800; color:#005993; margin-top:6px; line-height:1;">{{ s.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- warnings -->
+      <sc-if value="{{ hasWarnings }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:16px; background:#FFF6E6; border:1px solid #F2D79B; border-radius:10px; padding:13px 17px;">
+          <div style="font-size:12.5px; font-weight:700; color:#9A6A12; margin-bottom:6px;">Cảnh báo — một số chỉ tiêu không tìm thấy trong file:</div>
+          <div style="font-size:12px; color:#9A6A12;">{{ warningText }}</div>
+        </div>
+      </sc-if>
+
+      <!-- actions -->
+      <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">
+        <button onClick="{{ download }}" style="background:linear-gradient(100deg,#005993,#0A6FAE); color:#fff; border:none; font-family:inherit; font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:9px;">
+          <span style="font-size:16px; line-height:1;">↓</span> Tải file kpi-data.js
+        </button>
+        <button onClick="{{ preview }}" style="background:#fff; color:#005993; border:1.5px solid #005993; font-family:inherit; font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:10px; cursor:pointer;">Xem trước trên Dashboard ↗</button>
+        <button onClick="{{ reset }}" style="background:transparent; color:#7C8CA0; border:none; font-family:inherit; font-size:13px; font-weight:600; padding:12px 8px; cursor:pointer;">Tải file khác</button>
+      </div>
+
+      <!-- preview table -->
+      <div style="margin-top:22px; background:#fff; border:1px solid #E2E8F0; border-radius:12px; overflow:hidden;">
+        <div style="padding:14px 18px; border-bottom:1px solid #EDF1F6; font-size:14px; font-weight:700; color:#0A3358;">Kiểm tra số liệu đã trích xuất</div>
+        <table class="num" style="border-collapse:collapse; width:100%;">
+          <thead>
+            <tr style="background:#F6F9FC;">
+              <th style="text-align:left; padding:9px 18px; font-size:11.5px; font-weight:700; color:#5A6B7E;">Chỉ tiêu</th>
+              <th style="text-align:center; padding:9px 10px; font-size:11.5px; font-weight:700; color:#5A6B7E;">Số đơn vị</th>
+              <th style="text-align:right; padding:9px 14px; font-size:11.5px; font-weight:700; color:#5A6B7E;">TH kỳ này</th>
+              <th style="text-align:right; padding:9px 18px; font-size:11.5px; font-weight:700; color:#5A6B7E;">% HT KH</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+              <tr style="border-top:1px solid #F2F5F9;">
+                <td style="padding:9px 18px; font-size:12.5px; font-weight:600; color:#16263D;">{{ r.label }}</td>
+                <td style="text-align:center; padding:9px 10px; font-size:12px; color:#5A6B7E;">{{ r.units }}</td>
+                <td style="text-align:right; padding:9px 14px; font-size:12.5px; font-weight:600; color:#0A3358;">{{ r.total }}</td>
+                <td style="text-align:right; padding:9px 18px; font-size:12.5px; font-weight:700; color:#005993;">{{ r.pct }}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- how-to -->
+    <div style="margin-top:28px; background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:18px 22px;">
+      <div style="font-size:13.5px; font-weight:700; color:#0A3358; margin-bottom:10px;">Quy trình hàng kỳ</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        <div style="display:flex; gap:11px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#005993; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none;">1</div>
+          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Xuất báo cáo KPI hàng tháng từ hệ thống ra Excel (giữ nguyên cấu trúc sheet <b>Chỉ tiêu chung</b>).</div>
+        </div>
+        <div style="display:flex; gap:11px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#005993; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none;">2</div>
+          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Tải file lên đây, kiểm tra số liệu, rồi bấm <b>Tải file kpi-data.js</b>.</div>
+        </div>
+        <div style="display:flex; gap:11px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#005993; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none;">3</div>
+          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Thay thế file <b>kpi-data.js</b> cũ bằng file mới — Dashboard tự cập nhật.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:980,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', warnings: [], drag: false };
+
+  // ---------- meta ----------
+  unitMeta() {
+    return {
+      1: { name: 'Phòng KHDN', short: 'KHDN', type: 'Hội sở' }, 2: { name: 'Phòng Bán lẻ', short: 'Bán lẻ', type: 'Hội sở' },
+      28: { name: 'Phòng DVKH', short: 'DVKH', type: 'Hội sở' }, 3: { name: 'PGD Diễn Châu', short: 'Diễn Châu', type: 'PGD' },
+      4: { name: 'PGD Diễn Hồng', short: 'Diễn Hồng', type: 'PGD' }, 5: { name: 'PGD Hoàng Mai', short: 'Hoàng Mai', type: 'PGD' },
+      6: { name: 'PGD Sơn Hải', short: 'Sơn Hải', type: 'PGD' }, 7: { name: 'PGD Yên Thành', short: 'Yên Thành', type: 'PGD' },
+      8: { name: 'PGD Bãi Ngang', short: 'Bãi Ngang', type: 'PGD' }, 9: { name: 'PGD Diễn Đồng', short: 'Diễn Đồng', type: 'PGD' }
+    };
+  }
+  unitOrder() { return [1, 2, 28, 3, 4, 5, 6, 7, 8, 9]; }
+  // KPI specs: id, label, unit, keyword (matched against block label, lowercased). Order = priority.
+  specs() {
+    return [
+      { id: 'thu_nhap', label: 'Tổng thu nhập', unit: 'Triệu đồng', kw: 'tổng thu nhập' },
+      { id: 'du_no_bq', label: 'Dư nợ bình quân', unit: 'Tỷ đồng', kw: 'dư nợ bq (tỷ' },
+      { id: 'du_no_tdh', label: 'Dư nợ cuối kỳ - Trung dài hạn', unit: 'Tỷ đồng', kw: 'trung dài hạn' },
+      { id: 'du_no_tang', label: 'Dư nợ BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'dư nợ bq tăng trưởng' },
+      { id: 'du_no_khdn', label: 'Dư nợ BQ KHDN', unit: 'Tỷ đồng', kw: 'dư nợ bq khdn' },
+      { id: 'du_no_khcn', label: 'Dư nợ BQ KHCN', unit: 'Tỷ đồng', kw: 'dư nợ bq khcn' },
+      { id: 'nv_bq', label: 'Nguồn vốn huy động BQ', unit: 'Tỷ đồng', kw: 'nv bq (tỷ' },
+      { id: 'nv_tang', label: 'Nguồn vốn BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'nguồn vốn bq tăng trưởng' },
+      { id: 'casa_bq', label: 'CASA bình quân', unit: 'Tỷ đồng', kw: 'casa) bq' },
+      { id: 'phi_dv', label: 'Thu thuần phí dịch vụ', unit: 'Triệu đồng', kw: 'thu thuần phí dịch vụ' },
+      { id: 'ngoai_lai', label: 'Thu thuần ngoài lãi', unit: 'Triệu đồng', kw: 'thu thuần ngoài lãi' },
+      { id: 'nii_tong', label: 'NII (Tín dụng + Huy động + TP)', unit: 'Triệu đồng', kw: 'nii tín dụng + h' },
+      { id: 'nii_td', label: 'NII Tín dụng', unit: 'Triệu đồng', kw: 'nii tín dụng' },
+      { id: 'nii_tg', label: 'NII Tiền gửi', unit: 'Triệu đồng', kw: 'nii tiền gửi' },
+      { id: 'bao_hiem', label: 'Doanh thu Bảo hiểm', unit: 'Triệu đồng', kw: 'doanh thu bảo hiểm' },
+      { id: 'kh_efast', label: 'Số lượng KHDN eFAST', unit: 'KH', kw: 'efast' },
+      { id: 'kh_mainbank_cn', label: 'Số lượng KH MainBank CN', unit: 'KH', kw: 'mainbank khcn' }
+    ];
+  }
+
+  // ---------- zip / inflate ----------
+  async inflate(bytes, e) {
+    const rU16 = o => bytes[o] | (bytes[o + 1] << 8);
+    const nameLen = rU16(e.lho + 26), extraLen = rU16(e.lho + 28);
+    const start = e.lho + 30 + nameLen + extraLen;
+    const data = bytes.slice(start, start + e.compSize);
+    if (e.method === 0) return new TextDecoder().decode(data);
+    const ds = new DecompressionStream('deflate-raw');
+    const ab = await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();
+    return new TextDecoder().decode(ab);
+  }
+  unzip(bytes) {
+    const rU16 = o => bytes[o] | (bytes[o + 1] << 8);
+    const rU32 = o => (bytes[o] | (bytes[o + 1] << 8) | (bytes[o + 2] << 16) | (bytes[o + 3] << 24)) >>> 0;
+    let eocd = -1;
+    for (let i = bytes.length - 22; i >= 0; i--) { if (rU32(i) === 0x06054b50) { eocd = i; break; } }
+    if (eocd < 0) throw new Error('File không phải định dạng .xlsx hợp lệ.');
+    const cdOffset = rU32(eocd + 16), cdCount = rU16(eocd + 10);
+    const entries = {}; let p = cdOffset;
+    for (let i = 0; i < cdCount; i++) {
+      if (rU32(p) !== 0x02014b50) break;
+      const method = rU16(p + 10), compSize = rU32(p + 20), nameLen = rU16(p + 28), extraLen = rU16(p + 30), commentLen = rU16(p + 32), lho = rU32(p + 42);
+      const name = new TextDecoder().decode(bytes.slice(p + 46, p + 46 + nameLen));
+      entries[name] = { method, compSize, lho };
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries;
+  }
+
+  // ---------- parsing ----------
+  num(v) { if (v == null) return null; v = ('' + v).trim(); if (v === '' || v === '#REF!' || v === '#N/A' || isNaN(+v)) return null; return +v; }
+  norm(s) { return ('' + s).replace(/^\s*-\s*/, '').replace(/^Phòng\s+/i, '').replace(/^PGD\s+/i, '').trim().toLowerCase(); }
+  colNum(col) { let n = 0; for (const c of col) n = n * 26 + (c.charCodeAt(0) - 64); return n; }
+
+  async parse(buf) {
+    const bytes = new Uint8Array(buf);
+    const entries = this.unzip(bytes);
+    const get = async n => entries[n] ? this.inflate(bytes, entries[n]) : null;
+    const dp = new DOMParser();
+
+    // shared strings
+    const ssXml = await get('xl/sharedStrings.xml');
+    const strings = [];
+    if (ssXml) { const doc = dp.parseFromString(ssXml, 'application/xml'); doc.querySelectorAll('si').forEach(si => { let s = ''; si.querySelectorAll('t').forEach(t => s += t.textContent); strings.push(s); }); }
+
+    // find target worksheet ("Chỉ tiêu chung" else first)
+    const wbXml = await get('xl/workbook.xml'); const relXml = await get('xl/_rels/workbook.xml.rels');
+    let sheetFile = 'xl/worksheets/sheet1.xml';
+    if (wbXml && relXml) {
+      const wb = dp.parseFromString(wbXml, 'application/xml'); const rel = dp.parseFromString(relXml, 'application/xml');
+      const relMap = {}; rel.querySelectorAll('Relationship').forEach(r => relMap[r.getAttribute('Id')] = r.getAttribute('Target'));
+      const sheets = [...wb.querySelectorAll('sheet')].map(s => ({ name: s.getAttribute('name'), rid: s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id') }));
+      let chosen = sheets.find(s => this.norm(s.name).includes('chỉ tiêu chung')) || sheets[0];
+      if (chosen && relMap[chosen.rid]) { let t = relMap[chosen.rid]; if (!t.startsWith('xl/')) t = 'xl/' + t.replace(/^\//, ''); sheetFile = t; }
+    }
+    const shXml = await get(sheetFile);
+    if (!shXml) throw new Error('Không tìm thấy sheet dữ liệu trong file.');
+    const sh = dp.parseFromString(shXml, 'application/xml');
+
+    // grid
+    const grid = {}; let maxR = 0;
+    sh.querySelectorAll('row').forEach(row => {
+      const r = +row.getAttribute('r'); if (r > maxR) maxR = r;
+      row.querySelectorAll('c').forEach(c => {
+        const ref = c.getAttribute('r'); const m = ref.match(/([A-Z]+)(\d+)/); if (!m) return;
+        const col = this.colNum(m[1]); const t = c.getAttribute('t');
+        let val = '';
+        const v = c.querySelector('v');
+        if (v) { val = v.textContent; if (t === 's') val = strings[+val] || ''; }
+        else { const is = c.querySelector('is'); if (is) { let s = ''; is.querySelectorAll('t').forEach(tt => s += tt.textContent); val = s; } }
+        if (val !== '') grid[r + ',' + col] = String(val).replace(/\r?\n/g, ' ');
+      });
+    });
+    const g = (r, c) => grid[r + ',' + c] || '';
+
+    // merges (column A blocks)
+    const merges = [];
+    sh.querySelectorAll('mergeCell').forEach(mc => {
+      const ref = mc.getAttribute('ref'); const mm = ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+      if (mm && mm[1] === 'A' && mm[3] === 'A') merges.push({ start: +mm[2], end: +mm[4] });
+    });
+    merges.sort((a, b) => a.start - b.start);
+
+    // name->code
+    const meta = this.unitMeta(); const order = this.unitOrder(); const n2c = {};
+    for (const c of order) { n2c[this.norm(meta[c].name)] = c; n2c[this.norm(meta[c].short)] = c; }
+    const codeOf = r => {
+      const c1 = this.num(g(r, 1)); if (c1 != null && meta[c1]) return c1;
+      const c2 = this.num(g(r, 2)); if (c2 != null && meta[c2]) return c2;
+      const nm = g(r, 3); if (nm) { const k = this.norm(nm); if (n2c[k] != null) return n2c[k]; }
+      return null;
+    };
+    const r1 = v => v == null ? null : Math.round(v * 10) / 10, r3 = v => v == null ? null : Math.round(v * 1000) / 1000;
+
+    // period from header row (row with col1 == "Chỉ tiêu")
+    let headerRow = 1;
+    for (let r = 1; r <= 5; r++) { if (this.norm(g(r, 1)).includes('chỉ tiêu')) { headerRow = r; break; } }
+    const dates = [];
+    for (let c = 1; c <= 18; c++) { const t = g(headerRow, c); const dm = t.match(/(\d{1,2})\s*[\/.]\s*(\d{1,2})\s*[\/.]\s*(\d{4})/); if (dm) dates.push({ c, s: dm[1].padStart(2, '0') + '/' + dm[2].padStart(2, '0') + '/' + dm[3] }); }
+    dates.sort((a, b) => a.c - b.c);
+    const period = dates.length ? dates[dates.length - 1].s : '';
+    const prevPeriod = dates.length > 1 ? dates[dates.length - 2].s : '';
+    const year = period ? +period.slice(-4) : new Date().getFullYear();
+
+    // assign blocks
+    const specs = this.specs(); const used = {};
+    const kpis = []; const found = {};
+    for (const mg of merges) {
+      const label = this.norm(g(mg.start, 1));
+      let spec = null;
+      for (const sp of specs) { if (!used[sp.id] && label.includes(sp.kw)) { spec = sp; break; } }
+      if (!spec) continue;
+      used[spec.id] = 1; found[spec.id] = 1;
+      const seen = {}; const units = [];
+      for (let r = mg.start; r <= mg.end; r++) {
+        const code = codeOf(r); if (code == null || !meta[code] || seen[code]) continue;
+        const th2025 = this.num(g(r, 4)), khQ2 = this.num(g(r, 5)), khNamRaw = this.num(g(r, 6)), thApr = this.num(g(r, 7)), thMay = this.num(g(r, 8)), delta = this.num(g(r, 9));
+        if (thMay == null && th2025 == null) continue;
+        const khNam = (khNamRaw != null && khNamRaw > 0) ? khNamRaw : null;
+        seen[code] = 1;
+        units.push({ code, name: meta[code].name, short: meta[code].short, type: meta[code].type, th2025: r1(th2025), khQ2: r1(khQ2), khNam: r1(khNam), thApr: r1(thApr), thMay: r1(thMay), delta: r1(delta), pctNam: (khNam ? r3(thMay / khNam) : null), pctQ2: (khQ2 ? r3(thMay / khQ2) : null), yoy: (th2025 ? r3(thMay / th2025) : null) });
+      }
+      if (!units.length) { delete found[spec.id]; used[spec.id] = 0; continue; }
+      const sum = f => { let s = 0, any = false; units.forEach(u => { if (u[f] != null) { s += u[f]; any = true; } }); return any ? s : null; };
+      const tMay = sum('thMay'), tApr = sum('thApr'), t25 = sum('th2025'), tQ2 = sum('khQ2'), tNam = sum('khNam');
+      kpis.push({ id: spec.id, label: spec.label, unit: spec.unit, units, total: { th2025: r1(t25), khQ2: r1(tQ2), khNam: r1(tNam), thApr: r1(tApr), thMay: r1(tMay), delta: r1(tMay != null && tApr != null ? tMay - tApr : (tMay != null ? units.reduce((a, u) => a + (u.delta || 0), 0) : null)), pctNam: (tNam ? r3(tMay / tNam) : null), pctQ2: (tQ2 ? r3(tMay / tQ2) : null), yoy: (t25 ? r3(tMay / t25) : null) } });
+    }
+    // sort kpis to spec order
+    kpis.sort((a, b) => specs.findIndex(s => s.id === a.id) - specs.findIndex(s => s.id === b.id));
+
+    // loi nhuan single row
+    let loi_nhuan = null;
+    for (let r = 1; r <= maxR; r++) { const t = this.norm(g(r, 1)); if (t.includes('lợi nhuận') && (t.includes('cn') || t.includes('chi nhánh'))) {
+      const thMay = this.num(g(r, 8)), thApr = this.num(g(r, 7)), delta = this.num(g(r, 9)), khNam = this.num(g(r, 6)) || this.num(g(r, 5)), th2025 = this.num(g(r, 4)) || this.num(g(r, 2));
+      if (thMay != null) { loi_nhuan = { label: 'Lợi nhuận chi nhánh', unit: 'Triệu đồng', th2025: r1(th2025), khNam: r1(khNam), thApr: r1(thApr), thMay: r1(thMay), delta: r1(delta), pctNam: (khNam ? r3(thMay / khNam) : null) }; break; }
+    } }
+
+    const warnings = specs.filter(s => !found[s.id]).map(s => s.label);
+    const out = { period, prevPeriod, year, unitOrder: order, unitMeta: meta, branchTotals: loi_nhuan ? { loi_nhuan } : {}, kpis };
+    return { out, warnings };
+  }
+
+  // ---------- format ----------
+  fmtVal(v, unit) {
+    if (v == null) return '—'; const a = Math.abs(v);
+    if (unit === 'KH') return Math.round(v).toLocaleString('vi-VN');
+    if (unit === 'Tỷ đồng') return v.toLocaleString('vi-VN', { maximumFractionDigits: a >= 100 ? 0 : 1 }) + ' tỷ';
+    if (unit === 'Triệu đồng') return a >= 1000 ? (v / 1000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tỷ' : v.toLocaleString('vi-VN') + ' tr';
+    return v.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  }
+  fmtPct(x) { return x == null ? '—' : (x * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + '%'; }
+
+  // ---------- handlers ----------
+  pick() { const el = document.getElementById('kpiFileInput'); if (el) el.click(); }
+  onDragOver(e) { e.preventDefault(); if (!this.state.drag) this.setState({ drag: true }); }
+  onDragLeave(e) { e.preventDefault(); if (this.state.drag) this.setState({ drag: false }); }
+  onDrop(e) { e.preventDefault(); this.setState({ drag: false }); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.handle(f); }
+  onInput(e) { const f = e.target.files && e.target.files[0]; if (f) this.handle(f); }
+  reset() { const el = document.getElementById('kpiFileInput'); if (el) el.value = ''; this.setState({ status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', warnings: [] }); }
+
+  async handle(file) {
+    this.setState({ status: 'parsing', fileName: file.name, errorMsg: '' });
+    try {
+      const buf = await file.arrayBuffer();
+      const { out, warnings } = await this.parse(buf);
+      if (!out.kpis.length) throw new Error('Không trích xuất được chỉ tiêu nào. Kiểm tra lại đúng file báo cáo KPI (sheet "Chỉ tiêu chung").');
+      const jsText = 'window.KPI_DATA = ' + JSON.stringify(out) + ';\n';
+      this.setState({ status: 'done', out, jsText, warnings });
+    } catch (err) {
+      this.setState({ status: 'error', errorMsg: 'Lỗi: ' + (err && err.message ? err.message : err) });
+    }
+  }
+  download() {
+    const blob = new Blob([this.state.jsText], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'kpi-data.js'; document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+  preview() {
+    try { localStorage.setItem('KPI_DATA_OVERRIDE', JSON.stringify(this.state.out)); } catch (e) {}
+    window.open('Dashboard KPI.dc.html', '_blank');
+  }
+
+  renderVals() {
+    const st = this.state;
+    const parsing = st.status === 'parsing';
+    const dropStyle = 'border:2.5px dashed ' + (st.drag ? '#005993' : '#C2D2E2') + '; background:' + (st.drag ? '#EAF4FB' : '#fff') + '; border-radius:16px; padding:42px 24px; text-align:center; cursor:pointer; transition:all .15s;';
+    const out = st.out;
+    const stats = out ? [
+      { label: 'Kỳ báo cáo', value: out.period || '—' },
+      { label: 'Kỳ trước', value: out.prevPeriod || '—' },
+      { label: 'Số chỉ tiêu', value: String(out.kpis.length) },
+      { label: 'Số đơn vị', value: String((out.unitOrder || []).length) }
+    ] : [];
+    const rows = out ? out.kpis.map(k => ({
+      label: k.label, units: String(k.units.length),
+      total: this.fmtVal(k.total.thMay, k.unit),
+      pct: this.fmtPct(k.total.pctNam != null ? k.total.pctNam : k.total.pctQ2)
+    })) : [];
+
+    return {
+      dropStyle,
+      dropTitle: parsing ? 'Đang đọc file…' : (st.status === 'done' ? '✓ Đã xử lý: ' + st.fileName : 'Kéo thả file Excel vào đây'),
+      dropSub: parsing ? 'Vui lòng đợi trong giây lát' : 'hoặc bấm để chọn file .xlsx — báo cáo KPI hàng kỳ',
+      pick: () => this.pick(), onInput: e => this.onInput(e),
+      onDrop: e => this.onDrop(e), onDragOver: e => this.onDragOver(e), onDragLeave: e => this.onDragLeave(e),
+      isError: st.status === 'error', errorMsg: st.errorMsg,
+      isDone: st.status === 'done',
+      stats, rows,
+      hasWarnings: st.warnings.length > 0, warningText: st.warnings.join(' · '),
+      download: () => this.download(), preview: () => this.preview(), reset: () => this.reset()
+    };
+  }
+}
+</script>
+</body>
+</html>

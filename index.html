@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="kpi-data.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; background: #EEF2F7; color: #16263D; -webkit-font-smoothing: antialiased; }
+  ::selection { background: #005993; color: #fff; }
+  .num { font-variant-numeric: tabular-nums; }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #C7D3E0; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#EEF2F7;">
+
+  <!-- ===== TOP BAR ===== -->
+  <header style="position:sticky; top:0; z-index:50; background:linear-gradient(105deg,#004A78 0%,#005993 56%,#C2154E 142%); color:#fff; box-shadow:0 1px 0 rgba(255,255,255,.06), 0 6px 20px rgba(10,42,78,.18);">
+    <div style="max-width:1320px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:13px; min-width:0;">
+        <div style="width:38px; height:38px; border-radius:9px; background:linear-gradient(135deg,#005993,#D71249); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);">
+          <div style="width:16px; height:16px; border-radius:50%; background:#fff; position:relative;">
+            <div style="position:absolute; inset:4px; border-radius:50%; background:#005993;"></div>
+          </div>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:15px; font-weight:700; letter-spacing:.2px; line-height:1.1;">Báo cáo thực hiện chỉ tiêu KPI</div>
+          <div style="font-size:12px; color:#9FB6D0; font-weight:500; margin-top:2px;">Chi nhánh · Tách theo Phòng / Phòng giao dịch</div>
+        </div>
+      </div>
+
+      <div style="flex:1;"></div>
+
+      <div style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); padding:7px 13px; border-radius:9px;">
+        <div style="width:7px; height:7px; border-radius:50%; background:#7ED3F7; box-shadow:0 0 0 3px rgba(126,211,247,.25);"></div>
+        <div>
+          <div class="num" style="font-size:13px; font-weight:700; line-height:1;">Số liệu đến {{ period }}</div>
+          <div style="font-size:10.5px; color:#9FB6D0; margin-top:2px;">So sánh với kỳ {{ prevPeriod }} · Năm KH {{ year }}</div>
+        </div>
+      </div>
+
+      <!-- layout switch -->
+      <div style="display:flex; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); border-radius:9px; padding:3px; gap:3px;">
+        <button onClick="{{ goA }}" style="{{ tabAStyle }}">Tổng quan &amp; Thi đua</button>
+        <button onClick="{{ goB }}" style="{{ tabBStyle }}">Ma trận hiệu suất</button>
+      </div>
+    </div>
+    <div style="height:3px; background:linear-gradient(90deg,#7ED3F7 0%,#005993 42%,#D71249 100%);"></div>
+  </header>
+
+  <div style="max-width:1320px; margin:0 auto; padding:24px 28px 64px;">
+
+    <!-- metric selector (shared) -->
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap;">
+      <span style="font-size:12px; font-weight:600; color:#5A6B7E; text-transform:uppercase; letter-spacing:.6px;">Chỉ số đánh giá</span>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <sc-for list="{{ metricOpts }}" as="m" hint-placeholder-count="4">
+          <button onClick="{{ m.onClick }}" style="{{ m.style }}">{{ m.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ============ LAYOUT A ============ -->
+    <sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <!-- hero cards -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px;">
+        <sc-for list="{{ heroCards }}" as="c" hint-placeholder-count="6">
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:14px; padding:18px 20px; box-shadow:0 1px 2px rgba(16,38,61,.04);">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div style="font-size:12.5px; font-weight:600; color:#5A6B7E; letter-spacing:.2px;">{{ c.label }}</div>
+              <div style="{{ c.deltaStyle }}">{{ c.deltaStr }}</div>
+            </div>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-top:10px;">
+              <div class="num" style="font-size:30px; font-weight:800; color:#003E66; line-height:1; letter-spacing:-.5px;">{{ c.valueStr }}</div>
+              <div style="font-size:12px; color:#8294A6; font-weight:600;">{{ c.unitStr }}</div>
+            </div>
+            <div style="margin-top:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11px; color:#8294A6; font-weight:500;">Hoàn thành kế hoạch</span>
+                <span class="num" style="font-size:12.5px; font-weight:700; color:#005993;">{{ c.pctStr }}</span>
+              </div>
+              <div style="position:relative; height:8px; background:#EDF1F6; border-radius:5px; overflow:hidden;">
+                <div style="{{ c.barStyle }}"></div>
+                <sc-if value="{{ c.pace }}" hint-placeholder-val="{{ true }}">
+                  <div style="{{ c.paceStyle }}"></div>
+                </sc-if>
+              </div>
+              <div style="font-size:10.5px; color:#A2B0BF; margin-top:6px;">{{ c.subStr }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- leaderboard + composite -->
+      <div style="display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start;">
+        <!-- leaderboard -->
+        <div style="background:#fff; border:1px solid #E2E8F0; border-radius:14px; box-shadow:0 1px 2px rgba(16,38,61,.04); overflow:hidden;">
+          <div style="padding:18px 22px 14px; border-bottom:1px solid #EDF1F6;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:15px; font-weight:700; color:#003E66;">Bảng xếp hạng theo chỉ tiêu</div>
+                <div style="font-size:12px; color:#8294A6; margin-top:2px;">Xếp hạng 10 đơn vị · {{ metricLabel }}</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:14px;">
+              <sc-for list="{{ kpiChips }}" as="k" hint-placeholder-count="8">
+                <button onClick="{{ k.onClick }}" style="{{ k.style }}">{{ k.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:8px 14px 14px;">
+            <sc-for list="{{ board }}" as="r" hint-placeholder-count="10">
+              <div style="display:flex; align-items:center; gap:14px; padding:9px 8px; border-radius:9px;">
+                <div style="{{ r.medalStyle }}">{{ r.rankStr }}</div>
+                <div style="width:118px; flex:none;">
+                  <div style="font-size:13px; font-weight:600; color:#16263D; line-height:1.15;">{{ r.short }}</div>
+                  <div style="font-size:10.5px; color:#A2B0BF; font-weight:500;">{{ r.type }}</div>
+                </div>
+                <div style="flex:1; min-width:0;">
+                  <div style="position:relative; height:22px; background:#F2F5F9; border-radius:6px; overflow:hidden;">
+                    <div style="{{ r.barStyle }}"></div>
+                  </div>
+                </div>
+                <div style="width:96px; flex:none; text-align:right;">
+                  <div class="num" style="font-size:13.5px; font-weight:700; color:#003E66;">{{ r.metricStr }}</div>
+                  <div class="num" style="font-size:10.5px; color:#8294A6; font-weight:500;">{{ r.valueStr }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- composite ranking -->
+        <div style="background:linear-gradient(155deg,#005993 0%,#014F84 42%,#D71249 168%); border-radius:14px; box-shadow:0 1px 2px rgba(16,38,61,.04); overflow:hidden; color:#fff;">
+          <div style="padding:18px 22px 12px;">
+            <div style="font-size:15px; font-weight:700;">Xếp hạng tổng hợp</div>
+            <div style="font-size:11.5px; color:#9FB6D0; margin-top:2px;">Trung bình thứ hạng trên các chỉ tiêu chính</div>
+          </div>
+          <div style="padding:6px 16px 18px;">
+            <sc-for list="{{ composite }}" as="u" hint-placeholder-count="10">
+              <div style="display:flex; align-items:center; gap:13px; padding:8px 8px; border-radius:9px; background:{{ u.rowBg }}; margin-bottom:5px;">
+                <div style="{{ u.badgeStyle }}">{{ u.posStr }}</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:13px; font-weight:600; line-height:1.15;">{{ u.short }}</div>
+                  <div style="font-size:10.5px; color:#9FB6D0;">{{ u.type }}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="num" style="font-size:14px; font-weight:700;">{{ u.avgStr }}</div>
+                  <div style="font-size:10px; color:#9FB6D0;">hạng TB</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ LAYOUT B ============ -->
+    <sc-if value="{{ isB }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+      <!-- matrix -->
+      <div style="background:#fff; border:1px solid #E2E8F0; border-radius:14px; box-shadow:0 1px 2px rgba(16,38,61,.04); overflow:hidden;">
+        <div style="padding:18px 22px 14px; border-bottom:1px solid #EDF1F6; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:15px; font-weight:700; color:#003E66;">Ma trận hiệu suất · Đơn vị × Chỉ tiêu</div>
+            <div style="font-size:12px; color:#8294A6; margin-top:2px;">Tô màu theo {{ metricLabel }} · Bấm dòng để xem chi tiết</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; font-size:11px; color:#8294A6;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:11px; height:11px; border-radius:3px; background:#1E8E5A;"></span>Dẫn đầu</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:11px; height:11px; border-radius:3px; background:#E0A12E;"></span>Trung bình</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="width:11px; height:11px; border-radius:3px; background:#D71249;"></span>Cuối bảng</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="num" style="border-collapse:collapse; width:100%; min-width:780px;">
+            <thead>
+              <tr>
+                <th style="position:sticky; left:0; z-index:2; background:#fff; text-align:left; padding:11px 16px; font-size:11.5px; font-weight:700; color:#5A6B7E; border-bottom:2px solid #E2E8F0;">Đơn vị</th>
+                <sc-for list="{{ matrixCols }}" as="col" hint-placeholder-count="10">
+                  <th style="padding:11px 8px; font-size:11px; font-weight:700; color:#5A6B7E; border-bottom:2px solid #E2E8F0; text-align:center; min-width:74px; line-height:1.2;">{{ col.label }}</th>
+                </sc-for>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:#F4F7FA;">
+                <td style="position:sticky; left:0; z-index:1; background:#F4F7FA; padding:10px 16px; font-size:12px; font-weight:700; color:#003E66; border-bottom:1px solid #EDF1F6;">Toàn chi nhánh</td>
+                <sc-for list="{{ totalRow }}" as="t" hint-placeholder-count="10">
+                  <td style="text-align:center; padding:10px 8px; font-size:12px; font-weight:700; color:#003E66; border-bottom:1px solid #EDF1F6;">{{ t.str }}</td>
+                </sc-for>
+              </tr>
+              <sc-for list="{{ matrixRows }}" as="row" hint-placeholder-count="10">
+                <tr onClick="{{ row.onClick }}" style="{{ row.trStyle }}">
+                  <td style="{{ row.nameStyle }}">
+                    <div style="font-size:12.5px; font-weight:600; color:#16263D;">{{ row.short }}</div>
+                    <div style="font-size:10px; color:#A2B0BF; font-weight:500;">{{ row.type }}</div>
+                  </td>
+                  <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="10">
+                    <td style="{{ cell.style }}">{{ cell.str }}</td>
+                  </sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- detail panel -->
+      <div style="position:sticky; top:90px; background:#fff; border:1px solid #E2E8F0; border-radius:14px; box-shadow:0 1px 2px rgba(16,38,61,.04); overflow:hidden;">
+        <div style="background:linear-gradient(120deg,#005993,#D71249); color:#fff; padding:18px 22px;">
+          <div style="font-size:11px; color:#7ED3F7; font-weight:600; letter-spacing:.5px; text-transform:uppercase;">{{ detail.type }}</div>
+          <div style="font-size:18px; font-weight:700; margin-top:3px;">{{ detail.name }}</div>
+        </div>
+        <div style="padding:14px 18px 20px;">
+          <sc-for list="{{ detail.rows }}" as="d" hint-placeholder-count="10">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #F2F5F9;">
+              <div style="min-width:0;">
+                <div style="font-size:12.5px; font-weight:600; color:#16263D; line-height:1.2;">{{ d.label }}</div>
+                <div class="num" style="font-size:11px; color:#8294A6; margin-top:2px;">{{ d.valueStr }} · KH {{ d.planStr }}</div>
+              </div>
+              <div style="text-align:right; flex:none;">
+                <div class="num" style="{{ d.pctStyle }}">{{ d.pctStr }}</div>
+                <div class="num" style="{{ d.deltaStyle }}">{{ d.deltaStr }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <div style="text-align:center; margin-top:40px; font-size:11px; color:#A2B0BF;">
+      Nguồn: Báo cáo tình hình thực hiện chỉ tiêu KPI · Số liệu nội bộ · Mẫu báo cáo định kỳ
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = { layout: 'A', metric: 'pct', kpiId: 'thu_nhap', unitCode: 1 };
+
+  // ---------- helpers ----------
+  D() { return (typeof window !== 'undefined' && window.KPI_DATA) || { kpis: [], unitOrder: [], unitMeta: {}, branchTotals: {} }; }
+  viLoc(n, d) { return Number(n).toLocaleString('vi-VN', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: 0 }); }
+  fmtVal(v, unit) {
+    if (v == null) return '—';
+    const a = Math.abs(v);
+    if (unit === 'KH') return this.viLoc(Math.round(v));
+    if (unit === 'Tỷ đồng') return this.viLoc(v, a >= 100 ? 0 : 1);
+    if (unit === 'Triệu đồng') {
+      if (a >= 1000) return this.viLoc(v / 1000, 1);
+      return this.viLoc(v, 0);
+    }
+    return this.viLoc(v, 1);
+  }
+  unitShort(unit, v) {
+    if (unit === 'KH') return 'KH';
+    if (unit === 'Tỷ đồng') return 'tỷ';
+    if (unit === 'Triệu đồng') return (Math.abs(v) >= 1000) ? 'tỷ' : 'tr.đ';
+    return '';
+  }
+  fmtPct(x) { return x == null ? '—' : (x * 100).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + '%'; }
+  // metric value for a unit record
+  mVal(u, metric) {
+    if (metric === 'pct') return u.pctNam != null ? u.pctNam : u.pctQ2;
+    if (metric === 'delta') return u.delta;
+    if (metric === 'yoy') return (u.th2025 && u.thMay != null) ? u.thMay / u.th2025 : null;
+    return u.pctNam != null ? u.pctNam : u.pctQ2;
+  }
+  mStr(v, metric, unit) {
+    if (v == null) return '—';
+    if (metric === 'pct') return this.fmtPct(v);
+    if (metric === 'yoy') return v.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + '×';
+    if (metric === 'delta') return (v >= 0 ? '+' : '') + this.fmtVal(v, unit);
+    return String(v);
+  }
+  lerp(a, b, t) { return a + (b - a) * t; }
+  hexToRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  rgb(a) { return 'rgb(' + a.map(x => Math.round(x)).join(',') + ')'; }
+  // t: 0(bad)->1(good) ; returns {bg, fg}
+  heat(t) {
+    if (t == null || isNaN(t)) return { bg: '#F4F7FA', fg: '#B7C2CE' };
+    t = Math.max(0, Math.min(1, t));
+    const red = [215, 18, 73], amb = [224, 161, 46], grn = [30, 142, 90];
+    let c;
+    if (t < 0.5) { const k = t / 0.5; c = [this.lerp(red[0], amb[0], k), this.lerp(red[1], amb[1], k), this.lerp(red[2], amb[2], k)]; }
+    else { const k = (t - 0.5) / 0.5; c = [this.lerp(amb[0], grn[0], k), this.lerp(amb[1], grn[1], k), this.lerp(amb[2], grn[2], k)]; }
+    const bg = [this.lerp(c[0], 255, 0.8), this.lerp(c[1], 255, 0.8), this.lerp(c[2], 255, 0.8)];
+    const fg = [c[0] * 0.62, c[1] * 0.62, c[2] * 0.62];
+    return { bg: this.rgb(bg), fg: this.rgb(fg) };
+  }
+  norm(v, min, max) { if (v == null || max == null || min == null || max === min) return 0.5; return (v - min) / (max - min); }
+
+  // KPIs shown as columns / chips
+  mainKpiIds() { return ['thu_nhap', 'du_no_bq', 'nv_bq', 'casa_bq', 'phi_dv', 'nii_tong', 'bao_hiem', 'du_no_tang', 'nv_tang', 'kh_mainbank_cn']; }
+  colLabels() {
+    return { thu_nhap: 'Thu nhập', du_no_bq: 'Dư nợ BQ', nv_bq: 'Nguồn vốn', casa_bq: 'CASA', phi_dv: 'Phí DV', nii_tong: 'NII', bao_hiem: 'Bảo hiểm', du_no_tang: 'Tăng dư nợ', nv_tang: 'Tăng NV', kh_mainbank_cn: 'KH MainBank' };
+  }
+  kpiById(id) { return this.D().kpis.find(k => k.id === id); }
+
+  // ---------- handlers ----------
+  setLayout(l) { this.setState({ layout: l }); }
+  setMetric(m) { this.setState({ metric: m }); }
+  setKpi(id) { this.setState({ kpiId: id }); }
+  setUnit(c) { this.setState({ unitCode: c }); }
+
+  renderVals() {
+    const D = this.D();
+    const { layout, metric, kpiId, unitCode } = this.state;
+    const order = D.unitOrder || [];
+    const meta = D.unitMeta || {};
+    const labels = this.colLabels();
+    const segBase = 'padding:6px 13px; border:none; border-radius:6px; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .15s; white-space:nowrap;';
+
+    // ----- tabs -----
+    const tabOn = 'background:#fff; color:#005993;';
+    const tabOff = 'background:transparent; color:#9FB6D0;';
+    const tabAStyle = segBase + (layout === 'A' ? tabOn : tabOff);
+    const tabBStyle = segBase + (layout === 'B' ? tabOn : tabOff);
+
+    // ----- metric selector -----
+    const metricsDef = [
+      { key: 'pct', label: '% Hoàn thành kế hoạch' },
+      { key: 'delta', label: '+/- so với tháng trước' },
+      { key: 'yoy', label: 'So với cùng kỳ 2025' },
+    ];
+    const metricOpts = metricsDef.map(m => ({
+      label: m.label,
+      onClick: () => this.setMetric(m.key),
+      style: 'padding:7px 14px; border-radius:8px; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; transition:all .15s; border:1px solid ' +
+        (metric === m.key ? '#005993; background:#005993; color:#fff;' : '#D8E1EC; background:#fff; color:#5A6B7E;'),
+    }));
+    const metricLabel = (metricsDef.find(m => m.key === metric) || {}).label;
+
+    // ----- hero cards (layout A) -----
+    const cardDefs = [
+      { id: 'loi_nhuan', label: 'Lợi nhuận chi nhánh', flow: true, src: 'branch' },
+      { id: 'thu_nhap', label: 'Tổng thu nhập', flow: true },
+      { id: 'phi_dv', label: 'Thu thuần phí dịch vụ', flow: true },
+      { id: 'du_no_bq', label: 'Dư nợ bình quân', flow: false },
+      { id: 'nv_bq', label: 'Nguồn vốn huy động BQ', flow: false },
+      { id: 'casa_bq', label: 'CASA bình quân', flow: false },
+    ];
+    const pace = 5 / 12;
+    const heroCards = cardDefs.map(cd => {
+      let tot, unit;
+      if (cd.src === 'branch') { tot = (D.branchTotals && D.branchTotals.loi_nhuan) || {}; unit = tot.unit || 'Triệu đồng'; }
+      else { const k = this.kpiById(cd.id); tot = k ? k.total : {}; unit = k ? k.unit : ''; }
+      const val = tot.thMay;
+      const isAnnual = tot.pctNam != null;
+      const pct = isAnnual ? tot.pctNam : tot.pctQ2;
+      const planVal = isAnnual ? tot.khNam : tot.khQ2;
+      const planLbl = isAnnual ? 'Kế hoạch năm' : 'Kế hoạch Quý 2';
+      const delta = tot.delta;
+      const barW = pct == null ? 0 : Math.max(2, Math.min(100, pct * 100));
+      const deltaPos = (delta || 0) >= 0;
+      return {
+        label: cd.label,
+        valueStr: this.fmtVal(val, unit),
+        unitStr: this.unitShort(unit, val),
+        pctStr: this.fmtPct(pct),
+        subStr: planLbl + ': ' + this.fmtVal(planVal, unit) + ' ' + this.unitShort(unit, planVal),
+        barStyle: 'position:absolute; left:0; top:0; bottom:0; width:' + barW + '%; background:linear-gradient(90deg,#7ED3F7 0%,#005993 45%,#D71249 100%); border-radius:5px;',
+        pace: cd.flow && isAnnual,
+        paceStyle: 'position:absolute; top:-2px; bottom:-2px; left:' + (pace * 100) + '%; width:2px; background:#003E66; opacity:.35;',
+        deltaStr: (deltaPos ? '▲ ' : '▼ ') + this.fmtVal(Math.abs(delta), unit) + ' ' + this.unitShort(unit, delta),
+        deltaStyle: 'font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; ' +
+          (deltaPos ? 'color:#137A4C; background:#E4F4EC;' : 'color:#D71249; background:#FBE3EA;'),
+      };
+    });
+
+    // ----- KPI chips -----
+    const chipIds = this.mainKpiIds();
+    const kpiChips = chipIds.map(id => {
+      const k = this.kpiById(id);
+      const on = id === kpiId;
+      return {
+        label: k ? k.label : id,
+        onClick: () => this.setKpi(id),
+        style: 'padding:6px 12px; border-radius:20px; font-family:inherit; font-size:11.5px; font-weight:600; cursor:pointer; transition:all .15s; border:1px solid ' +
+          (on ? '#005993; background:#005993; color:#fff;' : '#E2E8F0; background:#F7F9FC; color:#5A6B7E;'),
+      };
+    });
+
+    // ----- leaderboard (selected kpi) -----
+    const selK = this.kpiById(kpiId) || { units: [], unit: '' };
+    const vals = selK.units.map(u => this.mVal(u, metric)).filter(v => v != null);
+    const vmin = vals.length ? Math.min(...vals) : 0;
+    const vmax = vals.length ? Math.max(...vals) : 1;
+    const sorted = selK.units.slice().sort((a, b) => {
+      const av = this.mVal(a, metric), bv = this.mVal(b, metric);
+      if (av == null) return 1; if (bv == null) return -1; return bv - av;
+    });
+    const medalColors = ['#D8A23E', '#A9B4C0', '#C58A57'];
+    const board = sorted.map((u, i) => {
+      const mv = this.mVal(u, metric);
+      const t = this.norm(mv, vmin, vmax);
+      const barW = Math.max(3, t * 100);
+      const isTop = i < 3;
+      return {
+        rankStr: String(i + 1),
+        medalStyle: 'width:26px; height:26px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; color:' +
+          (isTop ? '#fff' : '#8294A6') + '; background:' + (isTop ? medalColors[i] : '#F2F5F9') + ';',
+        short: u.short, type: u.type,
+        metricStr: this.mStr(mv, metric, selK.unit),
+        valueStr: this.fmtVal(u.thMay, selK.unit) + ' ' + this.unitShort(selK.unit, u.thMay),
+        barStyle: 'position:absolute; left:0; top:0; bottom:0; width:' + barW + '%; border-radius:6px; background:' +
+          (isTop ? 'linear-gradient(90deg,#005993,#D71249)' : 'linear-gradient(90deg,#7ED3F7,#3FA8D8)') + ';',
+      };
+    });
+
+    // ----- composite ranking -----
+    const compIds = ['thu_nhap', 'du_no_bq', 'nv_bq', 'casa_bq', 'phi_dv', 'bao_hiem', 'nii_tong'];
+    const acc = {};
+    order.forEach(c => { acc[c] = { sum: 0, n: 0 }; });
+    compIds.forEach(id => {
+      const k = this.kpiById(id); if (!k) return;
+      const us = k.units.filter(u => this.mVal(u, metric) != null)
+        .sort((a, b) => this.mVal(b, metric) - this.mVal(a, metric));
+      us.forEach((u, i) => { if (acc[u.code]) { acc[u.code].sum += (i + 1); acc[u.code].n += 1; } });
+    });
+    const comp = order.filter(c => acc[c] && acc[c].n > 0)
+      .map(c => ({ code: c, avg: acc[c].sum / acc[c].n, meta: meta[c] }))
+      .sort((a, b) => a.avg - b.avg);
+    const composite = comp.map((u, i) => {
+      const top = i < 3;
+      return {
+        posStr: String(i + 1),
+        short: u.meta.short, type: u.meta.type,
+        avgStr: u.avg.toLocaleString('vi-VN', { maximumFractionDigits: 1 }),
+        rowBg: top ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.03)',
+        badgeStyle: 'width:26px; height:26px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; color:' +
+          (top ? '#003E66' : '#9FB6D0') + '; background:' + (top ? medalColors[i] : 'rgba(255,255,255,.08)') + ';',
+      };
+    });
+
+    // ----- matrix (layout B) -----
+    const matrixCols = chipIds.map(id => ({ label: labels[id] || id }));
+    // per-column normalization
+    const colStats = {};
+    chipIds.forEach(id => {
+      const k = this.kpiById(id);
+      const vs = k ? k.units.map(u => this.mVal(u, metric)).filter(v => v != null) : [];
+      colStats[id] = { min: vs.length ? Math.min(...vs) : 0, max: vs.length ? Math.max(...vs) : 1 };
+    });
+    const cellTdBase = 'text-align:center; padding:9px 8px; font-size:12px; font-weight:600; border-bottom:1px solid #EDF1F6; cursor:pointer;';
+    const matrixRows = order.map(code => {
+      const cells = chipIds.map(id => {
+        const k = this.kpiById(id);
+        const u = k ? k.units.find(x => x.code === code) : null;
+        const mv = u ? this.mVal(u, metric) : null;
+        const t = mv == null ? null : this.norm(mv, colStats[id].min, colStats[id].max);
+        const h = this.heat(t);
+        return { str: this.mStr(mv, metric, k ? k.unit : ''), style: cellTdBase + 'background:' + h.bg + '; color:' + h.fg + ';' };
+      });
+      const sel = code === unitCode;
+      return {
+        short: meta[code] ? meta[code].short : code,
+        type: meta[code] ? meta[code].type : '',
+        onClick: () => this.setUnit(code),
+        trStyle: 'cursor:pointer; transition:background .12s; ' + (sel ? 'box-shadow:inset 3px 0 0 #D71249;' : ''),
+        nameStyle: 'position:sticky; left:0; z-index:1; padding:9px 16px; border-bottom:1px solid #EDF1F6; background:' + (sel ? '#E6F6FD' : '#fff') + ';',
+        cells,
+      };
+    });
+    const totalRow = chipIds.map(id => {
+      const k = this.kpiById(id);
+      let str = '—';
+      if (k) {
+        if (metric === 'pct') str = this.fmtPct(k.total.pctNam != null ? k.total.pctNam : k.total.pctQ2);
+        else if (metric === 'yoy') str = k.total.yoy == null ? '—' : k.total.yoy.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + '×';
+        else if (metric === 'delta') str = (k.total.delta >= 0 ? '+' : '') + this.fmtVal(k.total.delta, k.unit);
+      }
+      return { str };
+    });
+
+    // ----- detail panel -----
+    const dMeta = meta[unitCode] || { name: '', type: '' };
+    const detailRows = chipIds.map(id => {
+      const k = this.kpiById(id);
+      const u = k ? k.units.find(x => x.code === unitCode) : null;
+      const pos = (u && u.delta != null) ? u.delta >= 0 : true;
+      return {
+        label: k ? k.label : id,
+        valueStr: u ? (this.fmtVal(u.thMay, k.unit) + ' ' + this.unitShort(k.unit, u.thMay)) : '—',
+        planStr: u ? (this.fmtVal(u.khNam != null ? u.khNam : u.khQ2, k.unit)) : '—',
+        pctStr: u ? this.fmtPct(u.pctNam != null ? u.pctNam : u.pctQ2) : '—',
+        pctStyle: 'font-size:13px; font-weight:700; color:#005993;',
+        deltaStr: u && u.delta != null ? ((u.delta >= 0 ? '+' : '') + this.fmtVal(u.delta, k.unit)) : '',
+        deltaStyle: 'font-size:10.5px; font-weight:600; margin-top:1px; color:' + (pos ? '#137A4C' : '#D71249') + ';',
+      };
+    });
+    const detail = { name: dMeta.name, type: dMeta.type, rows: detailRows };
+
+    return {
+      period: D.period, prevPeriod: D.prevPeriod, year: D.year,
+      goA: () => this.setLayout('A'), goB: () => this.setLayout('B'),
+      tabAStyle, tabBStyle,
+      isA: layout === 'A', isB: layout === 'B',
+      metricOpts, metricLabel,
+      heroCards, kpiChips, board, composite,
+      matrixCols, matrixRows, totalRow, detail,
+    };
+  }
+}
+</script>
+</body>
+</html>
