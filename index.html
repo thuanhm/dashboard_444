@@ -305,9 +305,9 @@ class Component extends DCLogic {
   norm(v, min, max) { if (v == null || max == null || min == null || max === min) return 0.5; return (v - min) / (max - min); }
 
   // KPIs shown as columns / chips
-  mainKpiIds() { return ['thu_nhap', 'du_no_bq', 'nv_bq', 'casa_bq', 'phi_dv', 'nii_tong', 'bao_hiem', 'du_no_tang', 'nv_tang', 'kh_mainbank_cn']; }
+  mainKpiIds() { return ['thu_nhap', 'du_no_bq', 'nv_bq', 'casa_bq', 'ngoai_lai', 'nii_tong', 'bao_hiem', 'du_no_tang', 'nv_tang', 'kh_mainbank_cn']; }
   colLabels() {
-    return { thu_nhap: 'Thu nhập', du_no_bq: 'Dư nợ BQ', nv_bq: 'Nguồn vốn', casa_bq: 'CASA', phi_dv: 'Phí DV', nii_tong: 'NII', bao_hiem: 'Bảo hiểm', du_no_tang: 'Tăng dư nợ', nv_tang: 'Tăng NV', kh_mainbank_cn: 'KH MainBank' };
+    return { thu_nhap: 'Thu nhập', du_no_bq: 'Dư nợ BQ', nv_bq: 'Nguồn vốn', casa_bq: 'CASA', ngoai_lai: 'Thu ngoài lãi', nii_tong: 'NII', bao_hiem: 'Bảo hiểm', du_no_tang: 'Tăng dư nợ', nv_tang: 'Tăng NV', kh_mainbank_cn: 'KH MainBank' };
   }
   kpiById(id) { return this.D().kpis.find(k => k.id === id); }
 
