@@ -82,6 +82,9 @@
         <button onClick="{{ download }}" style="background:linear-gradient(100deg,#005993,#0A6FAE); color:#fff; border:none; font-family:inherit; font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:9px;">
           <span style="font-size:16px; line-height:1;">↓</span> Tải file kpi-data.js
         </button>
+        <button onClick="{{ downloadJson }}" style="background:linear-gradient(100deg,#0A6FAE,#2E8FCB); color:#fff; border:none; font-family:inherit; font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:9px;">
+          <span style="font-size:16px; line-height:1;">↓</span> Tải file kpi-data.json
+        </button>
         <button onClick="{{ preview }}" style="background:#fff; color:#005993; border:1.5px solid #005993; font-family:inherit; font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:10px; cursor:pointer;">Xem trước trên Dashboard ↗</button>
         <button onClick="{{ reset }}" style="background:transparent; color:#7C8CA0; border:none; font-family:inherit; font-size:13px; font-weight:600; padding:12px 8px; cursor:pointer;">Tải file khác</button>
       </div>
@@ -123,11 +126,11 @@
         </div>
         <div style="display:flex; gap:11px;">
           <div style="width:24px; height:24px; border-radius:50%; background:#005993; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none;">2</div>
-          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Tải file lên đây, kiểm tra số liệu, rồi bấm <b>Tải file kpi-data.js</b>.</div>
+          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Tải file lên đây, kiểm tra số liệu, rồi bấm <b>Tải file kpi-data.js</b> (hoặc <b>kpi-data.json</b>).</div>
         </div>
         <div style="display:flex; gap:11px;">
           <div style="width:24px; height:24px; border-radius:50%; background:#005993; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none;">3</div>
-          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Thay thế file <b>kpi-data.js</b> cũ bằng file mới — Dashboard tự cập nhật.</div>
+          <div style="font-size:12.5px; color:#5A6B7E; line-height:1.45;">Thay thế file <b>kpi-data.js</b> / <b>kpi-data.json</b> cũ bằng file mới — Dashboard tự cập nhật.</div>
         </div>
       </div>
     </div>
@@ -136,7 +139,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:980,&quot;height&quot;:900}}">
 class Component extends DCLogic {
-  state = { status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', warnings: [], drag: false };
+  state = { status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', jsonText: '', warnings: [], drag: false };
 
   // ---------- meta ----------
   unitMeta() {
@@ -149,26 +152,53 @@ class Component extends DCLogic {
     };
   }
   unitOrder() { return [1, 2, 28, 3, 4, 5, 6, 7, 8, 9]; }
-  // KPI specs: id, label, unit, keyword (matched against block label, lowercased). Order = priority.
+
+  // KPI specs: id, label, unit, keyword (matched against block label in column A, lowercased).
+  // Thứ tự = độ ưu tiên khi so khớp (chuỗi dài / cụ thể hơn phải đứng trước).
   specs() {
     return [
       { id: 'thu_nhap', label: 'Tổng thu nhập', unit: 'Triệu đồng', kw: 'tổng thu nhập' },
-      { id: 'du_no_bq', label: 'Dư nợ bình quân', unit: 'Tỷ đồng', kw: 'dư nợ bq (tỷ' },
+      { id: 'du_no_bq', label: 'Dư nợ bình quân', unit: 'Tỷ đồng', kw: 'tổng dư nợ bq (tỷ' },
+      { id: 'du_no_khdn_moi', label: 'Dư nợ KHDN mới', unit: 'Tỷ đồng', kw: 'dư nợ khdn mới' },
+      { id: 'du_no_tdh_khdn_moi', label: 'Dư nợ BQ TDH KHDN mới', unit: 'Tỷ đồng', kw: 'dư nợ bq tdh khdn mới' },
       { id: 'du_no_tdh', label: 'Dư nợ cuối kỳ - Trung dài hạn', unit: 'Tỷ đồng', kw: 'trung dài hạn' },
-      { id: 'du_no_tang', label: 'Dư nợ BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'dư nợ bq tăng trưởng' },
+      { id: 'du_no_tang', label: 'Dư nợ BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'dư nợ bq tăng trưởng trong năm' },
       { id: 'du_no_khdn', label: 'Dư nợ BQ KHDN', unit: 'Tỷ đồng', kw: 'dư nợ bq khdn' },
       { id: 'du_no_khcn', label: 'Dư nợ BQ KHCN', unit: 'Tỷ đồng', kw: 'dư nợ bq khcn' },
-      { id: 'nv_bq', label: 'Nguồn vốn huy động BQ', unit: 'Tỷ đồng', kw: 'nv bq (tỷ' },
-      { id: 'nv_tang', label: 'Nguồn vốn BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'nguồn vốn bq tăng trưởng' },
+      { id: 'nv_bq', label: 'Nguồn vốn huy động BQ', unit: 'Tỷ đồng', kw: 'tổng nv bq (tỷ' },
+      { id: 'nv_tang', label: 'Nguồn vốn BQ tăng trưởng', unit: 'Tỷ đồng', kw: 'nguồn vốn bq tăng trưởng trong năm' },
       { id: 'casa_bq', label: 'CASA bình quân', unit: 'Tỷ đồng', kw: 'casa) bq' },
+      { id: 'casa_tang', label: 'CASA KHCN tăng trưởng', unit: 'Tỷ đồng', kw: 'casa khcn tăng trưởng' },
       { id: 'phi_dv', label: 'Thu thuần phí dịch vụ', unit: 'Triệu đồng', kw: 'thu thuần phí dịch vụ' },
       { id: 'ngoai_lai', label: 'Thu thuần ngoài lãi', unit: 'Triệu đồng', kw: 'thu thuần ngoài lãi' },
+      { id: 'kdnt', label: 'Lợi nhuận KDNT', unit: 'Triệu đồng', kw: 'lợi nhuận kdnt' },
       { id: 'nii_tong', label: 'NII (Tín dụng + Huy động + TP)', unit: 'Triệu đồng', kw: 'nii tín dụng + h' },
       { id: 'nii_td', label: 'NII Tín dụng', unit: 'Triệu đồng', kw: 'nii tín dụng' },
       { id: 'nii_tg', label: 'NII Tiền gửi', unit: 'Triệu đồng', kw: 'nii tiền gửi' },
+      { id: 'nii_tp', label: 'NII Trái phiếu', unit: 'Triệu đồng', kw: 'nii trái phiếu' },
       { id: 'bao_hiem', label: 'Doanh thu Bảo hiểm', unit: 'Triệu đồng', kw: 'doanh thu bảo hiểm' },
-      { id: 'kh_efast', label: 'Số lượng KHDN eFAST', unit: 'KH', kw: 'efast' },
-      { id: 'kh_mainbank_cn', label: 'Số lượng KH MainBank CN', unit: 'KH', kw: 'mainbank khcn' }
+      { id: 'bh_nhan_tho', label: 'KQKD Bảo hiểm nhân thọ', unit: 'Triệu đồng', kw: 'bh nhân thọ' },
+      { id: 'bh_vbi', label: 'KQKD Bảo hiểm VBI', unit: 'Triệu đồng', kw: 'bh vbi' },
+      { id: 'kh_efast', label: 'Số lượng KHDN eFAST MAU', unit: 'KH', kw: 'efast' },
+      { id: 'kh_mainbank_cn', label: 'Số lượng KH MainBank KHCN', unit: 'KH', kw: 'mainbank khcn' },
+      { id: 'kh_mainbank_dn', label: 'Số lượng KH MainBank KHDN', unit: 'KH', kw: 'mainbank khdn' }
+    ];
+  }
+  // Các dòng tổng toàn chi nhánh (không có đơn vị bên dưới) -> branchTotals
+  branchSpecs() {
+    return [
+      { id: 'loi_nhuan', label: 'Lợi nhuận chi nhánh', unit: 'Triệu đồng', kw: 'lợi nhuận cn' },
+      { id: 'du_no_bq_cn', label: 'Tổng dư nợ BQ toàn CN', unit: 'Tỷ đồng', kw: 'tổng dư nợ bq toàn cn' },
+      { id: 'du_no_bq_khdn', label: 'Tổng dư nợ BQ KHDN', unit: 'Tỷ đồng', kw: 'tổng dư nợ bq khdn' },
+      { id: 'du_no_bq_khcn', label: 'Tổng dư nợ BQ KHCN', unit: 'Tỷ đồng', kw: 'tổng dư nợ bq khcn' },
+      { id: 'du_no_bq_tang_cn', label: 'Dư nợ BQ tăng trưởng toàn CN', unit: 'Tỷ đồng', kw: 'tăng trưởng trong năm toàn cn' },
+      { id: 'nv_bq_cn', label: 'Tổng NVHĐ BQ toàn CN', unit: 'Tỷ đồng', kw: 'tổng nvhđ bq toàn cn' },
+      { id: 'nv_bq_khdn', label: 'Tổng NVHĐ BQ KHDN', unit: 'Tỷ đồng', kw: 'tổng nvhđ bq khdn' },
+      { id: 'nv_bq_khcn', label: 'Tổng NVHĐ BQ KHCN', unit: 'Tỷ đồng', kw: 'tổng nvhđ bq khcn' },
+      { id: 'nv_bq_dctc', label: 'Tổng NVHĐ BQ ĐCTC', unit: 'Tỷ đồng', kw: 'tổng nvhđ bq đctc' },
+      { id: 'casa_bq_cn', label: 'Tổng CASA BQ toàn CN', unit: 'Tỷ đồng', kw: 'casa bq toàn cn' },
+      { id: 'casa_bq_khdn', label: 'Tổng CASA BQ KHDN', unit: 'Tỷ đồng', kw: 'tổng casa bq khdn' },
+      { id: 'casa_bq_khcn', label: 'Tổng CASA BQ KHCN', unit: 'Tỷ đồng', kw: 'tổng casa bq khcn' }
     ];
   }
 
@@ -201,9 +231,10 @@ class Component extends DCLogic {
     return entries;
   }
 
-  // ---------- parsing ----------
-  num(v) { if (v == null) return null; v = ('' + v).trim(); if (v === '' || v === '#REF!' || v === '#N/A' || isNaN(+v)) return null; return +v; }
-  norm(s) { return ('' + s).replace(/^\s*-\s*/, '').replace(/^Phòng\s+/i, '').replace(/^PGD\s+/i, '').trim().toLowerCase(); }
+  // ---------- helpers ----------
+  num(v) { if (v == null) return null; v = ('' + v).trim(); if (v === '' || v === '#REF!' || v === '#N/A' || v === '#DIV/0!' || isNaN(+v)) return null; return +v; }
+  norm(s) { return ('' + s).replace(/\s+/g, ' ').trim().toLowerCase(); }
+  normUnit(s) { return ('' + s).replace(/^\s*[-–]\s*/, '').replace(/^(phòng|pgd)\s+/i, '').replace(/\s+/g, ' ').trim().toLowerCase(); }
   colNum(col) { let n = 0; for (const c of col) n = n * 26 + (c.charCodeAt(0) - 64); return n; }
 
   async parse(buf) {
@@ -232,12 +263,13 @@ class Component extends DCLogic {
     const sh = dp.parseFromString(shXml, 'application/xml');
 
     // grid
-    const grid = {}; let maxR = 0;
+    const grid = {}; let maxR = 0, maxC = 0;
     sh.querySelectorAll('row').forEach(row => {
       const r = +row.getAttribute('r'); if (r > maxR) maxR = r;
       row.querySelectorAll('c').forEach(c => {
-        const ref = c.getAttribute('r'); const m = ref.match(/([A-Z]+)(\d+)/); if (!m) return;
-        const col = this.colNum(m[1]); const t = c.getAttribute('t');
+        const ref = c.getAttribute('r'); const m = ref && ref.match(/([A-Z]+)(\d+)/); if (!m) return;
+        const col = this.colNum(m[1]); if (col > maxC) maxC = col;
+        const t = c.getAttribute('t');
         let val = '';
         const v = c.querySelector('v');
         if (v) { val = v.textContent; if (t === 's') val = strings[+val] || ''; }
@@ -247,70 +279,117 @@ class Component extends DCLogic {
     });
     const g = (r, c) => grid[r + ',' + c] || '';
 
-    // merges (column A blocks)
-    const merges = [];
-    sh.querySelectorAll('mergeCell').forEach(mc => {
-      const ref = mc.getAttribute('ref'); const mm = ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
-      if (mm && mm[1] === 'A' && mm[3] === 'A') merges.push({ start: +mm[2], end: +mm[4] });
-    });
-    merges.sort((a, b) => a.start - b.start);
-
-    // name->code
-    const meta = this.unitMeta(); const order = this.unitOrder(); const n2c = {};
-    for (const c of order) { n2c[this.norm(meta[c].name)] = c; n2c[this.norm(meta[c].short)] = c; }
-    const codeOf = r => {
-      const c1 = this.num(g(r, 1)); if (c1 != null && meta[c1]) return c1;
-      const c2 = this.num(g(r, 2)); if (c2 != null && meta[c2]) return c2;
-      const nm = g(r, 3); if (nm) { const k = this.norm(nm); if (n2c[k] != null) return n2c[k]; }
-      return null;
-    };
-    const r1 = v => v == null ? null : Math.round(v * 10) / 10, r3 = v => v == null ? null : Math.round(v * 1000) / 1000;
-
-    // period from header row (row with col1 == "Chỉ tiêu")
+    // ----- dòng tiêu đề + dò cột động (bố cục file thay đổi theo kỳ) -----
     let headerRow = 1;
-    for (let r = 1; r <= 5; r++) { if (this.norm(g(r, 1)).includes('chỉ tiêu')) { headerRow = r; break; } }
+    for (let r = 1; r <= 8; r++) { if (this.norm(g(r, 1)).includes('chỉ tiêu')) { headerRow = r; break; } }
+    const C = { unit: 0, th2025: 0, khKy: 0, khNam: 0, thPrev: 0, thCur: 0, delta: 0, pctKy: 0, pctNam: 0, rank: 0 };
     const dates = [];
-    for (let c = 1; c <= 18; c++) { const t = g(headerRow, c); const dm = t.match(/(\d{1,2})\s*[\/.]\s*(\d{1,2})\s*[\/.]\s*(\d{4})/); if (dm) dates.push({ c, s: dm[1].padStart(2, '0') + '/' + dm[2].padStart(2, '0') + '/' + dm[3] }); }
+    for (let c = 1; c <= Math.max(maxC, 14); c++) {
+      const t = this.norm(g(headerRow, c)); if (!t) continue;
+      const dm = t.match(/(\d{1,2})\s*[\/.]\s*(\d{1,2})\s*[\/.]\s*(\d{4})/);
+      const isPlan = t.includes('kế hoạch') || t.includes('kh ');
+      if (dm && !isPlan) dates.push({ c, s: dm[1].padStart(2, '0') + '/' + dm[2].padStart(2, '0') + '/' + dm[3] });
+      if (!C.unit && (t.includes('tên phòng') || t.includes('phòng ban') || t.includes('đơn vị'))) C.unit = c;
+      if (!C.th2025 && (t.includes('thực hiện') || t.startsWith('th')) && /20\d\d/.test(t) && !/20(2[6-9]|[3-9]\d)/.test(t) && !dm) C.th2025 = c;
+      if (!C.khKy && t.includes('kế hoạch') && (t.includes('quý') || t.includes('kỳ'))) C.khKy = c;
+      if (!C.khNam && t.includes('kế hoạch') && t.includes('năm')) C.khNam = c;
+      if (!C.delta && (t.includes('+/-') || t.includes('+/–'))) C.delta = c;
+      if (!C.pctKy && t.includes('%') && (t.includes('quý') || t.includes('kỳ'))) C.pctKy = c;
+      if (!C.pctNam && t.includes('%') && t.includes('năm')) C.pctNam = c;
+      if (!C.rank && t.includes('rank')) C.rank = c;
+    }
     dates.sort((a, b) => a.c - b.c);
+    if (!C.unit) C.unit = 2;
+    if (dates.length) { C.thCur = dates[dates.length - 1].c; C.thPrev = dates.length > 1 ? dates[dates.length - 2].c : 0; }
+    if (!C.thCur) throw new Error('Không nhận diện được cột "TH <ngày>" trên dòng tiêu đề. Kiểm tra lại dòng tiêu đề của sheet "Chỉ tiêu chung".');
     const period = dates.length ? dates[dates.length - 1].s : '';
     const prevPeriod = dates.length > 1 ? dates[dates.length - 2].s : '';
     const year = period ? +period.slice(-4) : new Date().getFullYear();
 
-    // assign blocks
-    const specs = this.specs(); const used = {};
-    const kpis = []; const found = {};
-    for (const mg of merges) {
-      const label = this.norm(g(mg.start, 1));
+    // ----- nhận diện đơn vị -----
+    const meta = this.unitMeta(); const order = this.unitOrder(); const n2c = {};
+    for (const c of order) { n2c[this.normUnit(meta[c].name)] = c; n2c[this.normUnit(meta[c].short)] = c; }
+    const isTotalRow = s => { const u = this.normUnit(s); return u === 'tổng cn' || u === 'tổng chi nhánh' || u === 'toàn cn' || u === 'tổng'; };
+    const r1 = v => v == null ? null : Math.round(v * 10) / 10, r3 = v => v == null ? null : Math.round(v * 1000) / 1000;
+    const readRow = r => {
+      const p = k => C[k] ? this.num(g(r, C[k])) : null;
+      const th2025 = p('th2025'), khKy = p('khKy'), khNamRaw = p('khNam'), thPrev = p('thPrev'), thCur = p('thCur');
+      const khNam = (khNamRaw != null && khNamRaw > 0) ? khNamRaw : null;
+      let delta = p('delta'); if (delta == null && thCur != null && thPrev != null) delta = thCur - thPrev;
+      let pctKy = p('pctKy'); if (pctKy == null && khKy && thCur != null) pctKy = thCur / khKy;
+      let pctNam = p('pctNam'); if (pctNam == null && khNam && thCur != null) pctNam = thCur / khNam;
+      return {
+        th2025: r1(th2025), khQ2: r1(khKy), khKy: r1(khKy), khNam: r1(khNam),
+        thApr: r1(thPrev), thMay: r1(thCur), thPrev: r1(thPrev), thCur: r1(thCur), delta: r1(delta),
+        pctQ2: r3(pctKy), pctKy: r3(pctKy), pctNam: r3(pctNam),
+        yoy: (th2025 && thCur != null) ? r3(thCur / th2025) : null,
+        rank: p('rank')
+      };
+    };
+
+    // ----- tách khối theo cột A (không phụ thuộc merge nữa) -----
+    const starts = [];
+    for (let r = headerRow + 1; r <= maxR; r++) { if (g(r, 1).trim() !== '') starts.push(r); }
+
+    const specs = this.specs(), bspecs = this.branchSpecs(), used = {}, found = {};
+    const kpis = [], branchTotals = {}, branchList = [];
+
+    for (let i = 0; i < starts.length; i++) {
+      const s = starts[i], e = (i + 1 < starts.length) ? starts[i + 1] - 1 : maxR;
+      const label = this.norm(g(s, 1));
+
+      // gom các dòng đơn vị + dòng TỔNG CN trong khối
+      const seen = {}; const units = []; let totRow = null;
+      for (let r = s; r <= e; r++) {
+        const nm = g(r, C.unit); if (!nm) continue;
+        if (isTotalRow(nm)) { if (!totRow) totRow = readRow(r); continue; }
+        const code = n2c[this.normUnit(nm)];
+        if (code == null || seen[code]) continue;
+        const row = readRow(r);
+        if (row.thCur == null && row.th2025 == null) continue;
+        seen[code] = 1;
+        units.push(Object.assign({ code, name: meta[code].name, short: meta[code].short, type: meta[code].type }, row));
+      }
+
+      // khối không có đơn vị -> dòng tổng toàn chi nhánh
+      if (!units.length) {
+        const bs = bspecs.find(b => label.includes(b.kw));
+        const row = totRow || readRow(s);
+        if (row.thCur != null || row.th2025 != null) {
+          const id = bs ? bs.id : 'row_' + s;
+          if (!branchTotals[id]) {
+            const item = Object.assign({ label: bs ? bs.label : g(s, 1).trim(), unit: bs ? bs.unit : (label.includes('tỷ') ? 'Tỷ đồng' : 'Triệu đồng') }, row);
+            branchTotals[id] = item; branchList.push(Object.assign({ id }, item));
+          }
+        }
+        continue;
+      }
+
+      // khối chỉ tiêu có đơn vị
       let spec = null;
       for (const sp of specs) { if (!used[sp.id] && label.includes(sp.kw)) { spec = sp; break; } }
       if (!spec) continue;
       used[spec.id] = 1; found[spec.id] = 1;
-      const seen = {}; const units = [];
-      for (let r = mg.start; r <= mg.end; r++) {
-        const code = codeOf(r); if (code == null || !meta[code] || seen[code]) continue;
-        const th2025 = this.num(g(r, 4)), khQ2 = this.num(g(r, 5)), khNamRaw = this.num(g(r, 6)), thApr = this.num(g(r, 7)), thMay = this.num(g(r, 8)), delta = this.num(g(r, 9));
-        if (thMay == null && th2025 == null) continue;
-        const khNam = (khNamRaw != null && khNamRaw > 0) ? khNamRaw : null;
-        seen[code] = 1;
-        units.push({ code, name: meta[code].name, short: meta[code].short, type: meta[code].type, th2025: r1(th2025), khQ2: r1(khQ2), khNam: r1(khNam), thApr: r1(thApr), thMay: r1(thMay), delta: r1(delta), pctNam: (khNam ? r3(thMay / khNam) : null), pctQ2: (khQ2 ? r3(thMay / khQ2) : null), yoy: (th2025 ? r3(thMay / th2025) : null) });
+
+      const sum = f => { let t = 0, any = false; units.forEach(u => { if (u[f] != null) { t += u[f]; any = true; } }); return any ? t : null; };
+      let total;
+      if (totRow) { total = totRow; }
+      else {
+        const tCur = sum('thCur'), tPrev = sum('thPrev'), t25 = sum('th2025'), tKy = sum('khKy'), tNam = sum('khNam');
+        total = {
+          th2025: r1(t25), khQ2: r1(tKy), khKy: r1(tKy), khNam: r1(tNam),
+          thApr: r1(tPrev), thMay: r1(tCur), thPrev: r1(tPrev), thCur: r1(tCur),
+          delta: r1(tCur != null && tPrev != null ? tCur - tPrev : sum('delta')),
+          pctQ2: (tKy ? r3(tCur / tKy) : null), pctKy: (tKy ? r3(tCur / tKy) : null),
+          pctNam: (tNam ? r3(tCur / tNam) : null), yoy: (t25 ? r3(tCur / t25) : null), rank: null
+        };
       }
-      if (!units.length) { delete found[spec.id]; used[spec.id] = 0; continue; }
-      const sum = f => { let s = 0, any = false; units.forEach(u => { if (u[f] != null) { s += u[f]; any = true; } }); return any ? s : null; };
-      const tMay = sum('thMay'), tApr = sum('thApr'), t25 = sum('th2025'), tQ2 = sum('khQ2'), tNam = sum('khNam');
-      kpis.push({ id: spec.id, label: spec.label, unit: spec.unit, units, total: { th2025: r1(t25), khQ2: r1(tQ2), khNam: r1(tNam), thApr: r1(tApr), thMay: r1(tMay), delta: r1(tMay != null && tApr != null ? tMay - tApr : (tMay != null ? units.reduce((a, u) => a + (u.delta || 0), 0) : null)), pctNam: (tNam ? r3(tMay / tNam) : null), pctQ2: (tQ2 ? r3(tMay / tQ2) : null), yoy: (t25 ? r3(tMay / t25) : null) } });
+      kpis.push({ id: spec.id, label: spec.label, unit: spec.unit, units, total });
     }
-    // sort kpis to spec order
+
     kpis.sort((a, b) => specs.findIndex(s => s.id === a.id) - specs.findIndex(s => s.id === b.id));
-
-    // loi nhuan single row
-    let loi_nhuan = null;
-    for (let r = 1; r <= maxR; r++) { const t = this.norm(g(r, 1)); if (t.includes('lợi nhuận') && (t.includes('cn') || t.includes('chi nhánh'))) {
-      const thMay = this.num(g(r, 8)), thApr = this.num(g(r, 7)), delta = this.num(g(r, 9)), khNam = this.num(g(r, 6)) || this.num(g(r, 5)), th2025 = this.num(g(r, 4)) || this.num(g(r, 2));
-      if (thMay != null) { loi_nhuan = { label: 'Lợi nhuận chi nhánh', unit: 'Triệu đồng', th2025: r1(th2025), khNam: r1(khNam), thApr: r1(thApr), thMay: r1(thMay), delta: r1(delta), pctNam: (khNam ? r3(thMay / khNam) : null) }; break; }
-    } }
-
     const warnings = specs.filter(s => !found[s.id]).map(s => s.label);
-    const out = { period, prevPeriod, year, unitOrder: order, unitMeta: meta, branchTotals: loi_nhuan ? { loi_nhuan } : {}, kpis };
+    const out = { period, prevPeriod, year, unitOrder: order, unitMeta: meta, branchTotals, branchList, kpis };
     return { out, warnings };
   }
 
@@ -330,7 +409,7 @@ class Component extends DCLogic {
   onDragLeave(e) { e.preventDefault(); if (this.state.drag) this.setState({ drag: false }); }
   onDrop(e) { e.preventDefault(); this.setState({ drag: false }); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.handle(f); }
   onInput(e) { const f = e.target.files && e.target.files[0]; if (f) this.handle(f); }
-  reset() { const el = document.getElementById('kpiFileInput'); if (el) el.value = ''; this.setState({ status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', warnings: [] }); }
+  reset() { const el = document.getElementById('kpiFileInput'); if (el) el.value = ''; this.setState({ status: 'idle', fileName: '', errorMsg: '', out: null, jsText: '', jsonText: '', warnings: [] }); }
 
   async handle(file) {
     this.setState({ status: 'parsing', fileName: file.name, errorMsg: '' });
@@ -338,21 +417,24 @@ class Component extends DCLogic {
       const buf = await file.arrayBuffer();
       const { out, warnings } = await this.parse(buf);
       if (!out.kpis.length) throw new Error('Không trích xuất được chỉ tiêu nào. Kiểm tra lại đúng file báo cáo KPI (sheet "Chỉ tiêu chung").');
+      const jsonText = JSON.stringify(out, null, 1);
       const jsText = 'window.KPI_DATA = ' + JSON.stringify(out) + ';\n';
-      this.setState({ status: 'done', out, jsText, warnings });
+      this.setState({ status: 'done', out, jsText, jsonText, warnings });
     } catch (err) {
       this.setState({ status: 'error', errorMsg: 'Lỗi: ' + (err && err.message ? err.message : err) });
     }
   }
-  download() {
-    const blob = new Blob([this.state.jsText], { type: 'text/javascript' });
+  save(text, name, mime) {
+    const blob = new Blob([text], { type: mime });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'kpi-data.js'; document.body.appendChild(a); a.click();
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   }
+  download() { this.save(this.state.jsText, 'kpi-data.js', 'text/javascript'); }
+  downloadJson() { this.save(this.state.jsonText, 'kpi-data.json', 'application/json'); }
   preview() {
     try { localStorage.setItem('KPI_DATA_OVERRIDE', JSON.stringify(this.state.out)); } catch (e) {}
-    window.open('Dashboard KPI.dc.html', '_blank');
+    window.open('index.html', '_blank');
   }
 
   renderVals() {
@@ -364,12 +446,12 @@ class Component extends DCLogic {
       { label: 'Kỳ báo cáo', value: out.period || '—' },
       { label: 'Kỳ trước', value: out.prevPeriod || '—' },
       { label: 'Số chỉ tiêu', value: String(out.kpis.length) },
-      { label: 'Số đơn vị', value: String((out.unitOrder || []).length) }
+      { label: 'Dòng tổng CN', value: String((out.branchList || []).length) }
     ] : [];
     const rows = out ? out.kpis.map(k => ({
       label: k.label, units: String(k.units.length),
-      total: this.fmtVal(k.total.thMay, k.unit),
-      pct: this.fmtPct(k.total.pctNam != null ? k.total.pctNam : k.total.pctQ2)
+      total: this.fmtVal(k.total.thCur, k.unit),
+      pct: this.fmtPct(k.total.pctNam != null ? k.total.pctNam : k.total.pctKy)
     })) : [];
 
     return {
@@ -382,7 +464,7 @@ class Component extends DCLogic {
       isDone: st.status === 'done',
       stats, rows,
       hasWarnings: st.warnings.length > 0, warningText: st.warnings.join(' · '),
-      download: () => this.download(), preview: () => this.preview(), reset: () => this.reset()
+      download: () => this.download(), downloadJson: () => this.downloadJson(), preview: () => this.preview(), reset: () => this.reset()
     };
   }
 }

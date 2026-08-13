@@ -147,7 +147,7 @@
         <div style="background:linear-gradient(155deg,#005993 0%,#014F84 42%,#D71249 168%); border-radius:14px; box-shadow:0 1px 2px rgba(16,38,61,.04); overflow:hidden; color:#fff;">
           <div style="padding:18px 22px 12px;">
             <div style="font-size:15px; font-weight:700;">Xếp hạng tổng hợp</div>
-            <div style="font-size:11.5px; color:#9FB6D0; margin-top:2px;">Trung bình thứ hạng trên các chỉ tiêu chính</div>
+            <div style="font-size:11.5px; color:#9FB6D0; margin-top:2px;">{{ compNote }}</div>
           </div>
           <div style="padding:6px 16px 18px;">
             <sc-for list="{{ composite }}" as="u" hint-placeholder-count="10">
@@ -159,7 +159,7 @@
                 </div>
                 <div style="text-align:right;">
                   <div class="num" style="font-size:14px; font-weight:700;">{{ u.avgStr }}</div>
-                  <div style="font-size:10px; color:#9FB6D0;">hạng TB</div>
+                  <div style="font-size:10px; color:#9FB6D0;">hạng TB · {{ u.nStr }}</div>
                 </div>
               </div>
             </sc-for>
@@ -422,18 +422,18 @@ class Component extends DCLogic {
       };
     });
 
-    // ----- composite ranking -----
-    const compIds = ['thu_nhap', 'du_no_bq', 'nv_bq', 'casa_bq', 'phi_dv', 'bao_hiem', 'nii_tong'];
+    // ----- composite ranking: trung bình thứ hạng (cột Rank) của các chỉ tiêu có xếp hạng -----
+    const rankedKpis = (D.kpis || []).filter(k => (k.units || []).some(u => u.rank != null));
     const acc = {};
     order.forEach(c => { acc[c] = { sum: 0, n: 0 }; });
-    compIds.forEach(id => {
-      const k = this.kpiById(id); if (!k) return;
-      const us = k.units.filter(u => this.mVal(u, metric) != null)
-        .sort((a, b) => this.mVal(b, metric) - this.mVal(a, metric));
-      us.forEach((u, i) => { if (acc[u.code]) { acc[u.code].sum += (i + 1); acc[u.code].n += 1; } });
+    rankedKpis.forEach(k => {
+      k.units.forEach(u => { if (u.rank != null && acc[u.code]) { acc[u.code].sum += u.rank; acc[u.code].n += 1; } });
     });
+    const compNote = rankedKpis.length
+      ? 'Trung bình cột Rank của ' + rankedKpis.length + ' chỉ tiêu có xếp hạng trong file'
+      : 'File dữ liệu chưa có cột Rank';
     const comp = order.filter(c => acc[c] && acc[c].n > 0)
-      .map(c => ({ code: c, avg: acc[c].sum / acc[c].n, meta: meta[c] }))
+      .map(c => ({ code: c, avg: acc[c].sum / acc[c].n, n: acc[c].n, meta: meta[c] }))
       .sort((a, b) => a.avg - b.avg);
     const composite = comp.map((u, i) => {
       const top = i < 3;
@@ -441,6 +441,7 @@ class Component extends DCLogic {
         posStr: String(i + 1),
         short: u.meta.short, type: u.meta.type,
         avgStr: u.avg.toLocaleString('vi-VN', { maximumFractionDigits: 1 }),
+        nStr: u.n + ' chỉ tiêu',
         rowBg: top ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.03)',
         badgeStyle: 'width:26px; height:26px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; color:' +
           (top ? '#003E66' : '#9FB6D0') + '; background:' + (top ? medalColors[i] : 'rgba(255,255,255,.08)') + ';',
@@ -506,6 +507,7 @@ class Component extends DCLogic {
     const detail = { name: dMeta.name, type: dMeta.type, rows: detailRows };
 
     return {
+      compNote,
       period: D.period, prevPeriod: D.prevPeriod, year: D.year,
       goA: () => this.setLayout('A'), goB: () => this.setLayout('B'),
       tabAStyle, tabBStyle,
